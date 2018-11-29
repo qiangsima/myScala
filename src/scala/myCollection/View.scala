@@ -106,11 +106,11 @@ object View extends IterableFactory[View] {
   }
 
   class PartitionWith[A, A1, A2](val underlying: SomeIterableOps[A], val f: A => Either[A1, A2]) extends Serializable {
-    val let: View[A1] = new LeftPartitonWith(this, f)
-    val right: View[A2] = new RightPartitionWith(this, f)
+    val left: View[A1] = new LeftPartitionedWith(this, f)
+    val right: View[A2] = new RightPartitionedWith(this, f)
   }
 
-  class LeftPartitionWith[A, A1, A2](partitionWith: PartitionWith[A, A1, A2], f: A => Either[A1, A2]) extends AbstractView[A1] {
+  class LeftPartitionedWith[A, A1, A2](partitionWith: PartitionWith[A, A1, A2], f: A => Either[A1, A2]) extends AbstractView[A1] {
     def iterator: AbstractIterator[A1] = new AbstractIterator[A1] {
       private[this] val self = partitionWith.underlying.iterator
       private[this] var hd: A1 = _
@@ -134,7 +134,7 @@ object View extends IterableFactory[View] {
     }
   }
 
-  class RightPatitionWith[A, A1, A2](partitionWith: PartitionWith[A, A1, A2], f: A => Either[A1, A2]) extends AbstractView[A2] {
+  class RightPartitionedWith[A, A1, A2](partitionWith: PartitionWith[A, A1, A2], f: A => Either[A1, A2]) extends AbstractView[A2] {
     def iterator: Iterator[A2] = new AbstractIterator[A2] {
       private[this] val self = partitionWith.underlying.iterator
       private[this] var hd: A2 = _
@@ -213,7 +213,7 @@ object View extends IterableFactory[View] {
     override def isEmpty: Boolean = iterator.isEmpty
   }
 
-  class Collect[+A, B] (underlying: SomeIterableOps[A], pf: PartialFunction[A, B]) extends AbstractView[A] {
+  class Collect[+A, B] (underlying: SomeIterableOps[A], pf: PartialFunction[A, B]) extends AbstractView[B] {
     def iterator: Iterator[B] = underlying.iterator.collect(pf)
   }
 

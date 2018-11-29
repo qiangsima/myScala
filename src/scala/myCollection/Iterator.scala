@@ -12,6 +12,10 @@ trait Iterator[+A] extends IterableOnce[A] with IterableOnceOps[A, Iterable, Ite
 
   def contains(elem: Any): Boolean = exists(_ == elem)
 
+  def concat[B >: A](suffix: IterableOnce[B]): Iterator[B] = new Iterator.ConcatIterator[B](self).concat(suffix)
+
+  @`inline` final def ++ [B >: A](suffix: IterableOnce[B]): Iterator[B] = concat(suffix)
+
   def padTo[B >: A](len: Int, elem: B): Iterator[B] = {
     val it = this
     new AbstractIterator[B] {

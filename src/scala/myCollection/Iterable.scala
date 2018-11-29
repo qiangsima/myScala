@@ -1,6 +1,7 @@
 package scala.myCollection
 
 import scala.annotation.unchecked.uncheckedVariance
+import scala.myCollection.View.PartitionWith
 import scala.myCollection.mutable.Builder
 import scala.myCollection.generic.DefaultSerializationProxy
 
@@ -29,6 +30,8 @@ trait IterableOps[+A, +CC[_], +C] extends Any with IterableOnce[A] with Iterable
   protected type IterableCC[X] = CC[X] @uncheckedVariance
 
   def toIterable: Iterable[A]
+
+  override def isTraversableAgain: Boolean = true
 
   protected def coll: C
 
@@ -73,6 +76,30 @@ trait IterableOps[+A, +CC[_], +C] extends Any with IterableOnce[A] with Iterable
       }
     }
   }
+
+  def take(n: Int): C = fromSpecific(new View.Take(this, n))
+
+  def map[B](f: A => B): CC[B] = iterableFactory.from(new View.Map(this, f))
+
+  def flatMap[B](f: A => IterableOnce[B]): CC[B] = iterableFactory.from(new View.FlatMap(this, f))
+
+  def flatten[B](implicit asIterable: A => IterableOnce[B]): CC[B] = iterableFactory.from(new View.FlatMap(this, asIterable))
+
+  def takeWhile(p: A => Boolean): C = fromSpecific(new View.TakeWhile(this, p))
+
+  def collect[B](pf: PartialFunction[A, B]): CC[B] = iterableFactory.from(new View.Collect(this, pf))
+
+  def partitionWith[A1, A2](f: A => Either[A1, A2]): (CC[A1], CC[A2]) = {
+    val mp = new PartitionWith(this, f)
+    (iterableFactory.from(mp.left), iterableFactory.from(mp.right))
+  }
+
+  def concat[B >: A](suffix: IterableOnce[B]): CC[B] = iterableFactory.from(suffix match {
+    case xs: Iterable[B] => new View.Concat(this, xs)
+    case xs => iterator ++ suffix.iterator
+  })
+
+  @`inline` final def ++[B >: A](suffix: IterableOnce[B]): CC[B] = concat(suffix)
 
   def tail: C = {
     if (isEmpty) throw new UnsupportedOperationException
