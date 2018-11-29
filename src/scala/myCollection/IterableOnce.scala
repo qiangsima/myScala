@@ -1,5 +1,6 @@
 package scala.myCollection
 
+import scala.annotation.unchecked.uncheckedVariance
 import scala.myCollection.mutable.StringBuilder
 
 trait IterableOnce[+A] extends Any {
@@ -19,7 +20,6 @@ object IterableOnce {
     math.max(math.min(math.min(len, srcLen), destLen - start), 0)
 }
 
-
 trait IterableOnceOps[+A, +CC[_], +C] extends Any {this: IterableOnce[A] =>
 
   def scanLeft[B](z: B)(op: (B, A) => B):  CC[B]
@@ -33,8 +33,12 @@ trait IterableOnceOps[+A, +CC[_], +C] extends Any {this: IterableOnce[A] =>
   def map[B](f: A => B): CC[B]
   def flatMap[B](f: A => IterableOnce[B]): CC[B]
   def flatten[B](implicit asIterable: A => IterableOnce[B]): CC[B]
-
+  def collect[B](pf: PartialFunction[A, B]): CC[B]
+  def zipWithIndex: CC[(A @uncheckedVariance, Int)]
+  def span(p: A => Boolean): (C, C)
   def knownSize = -1
+  def hasDefiniteSize: Boolean = false
+  def isTraversableAgain: Boolean = false
 
   def foreach[U](f: A => U): Unit = {
     val it = iterator
@@ -77,6 +81,39 @@ trait IterableOnceOps[+A, +CC[_], +C] extends Any {this: IterableOnce[A] =>
     result
   }
   def foldRight[B](z: B)(op: (A, B) => B): B = reversed.foldLeft(z)((a, b) => op(b, a))
+
+  def reduce[B >: A](op: (B, B) => B): B = reduceLeft(op)
+
+  def reduceOption[B >: A](op: (B, B) => B): Option[B] = reduceLeftOption(op)
+
+  def reduceLeft[B >: A](op: (B, B) => B): B = {
+    val it = iterator
+    if (it.isEmpty)
+      throw new UnsupportedOperationException("empty reduceLeft")
+
+    var first = true
+    var acc: B = 0.asInstanceOf[B]
+
+    while (it.hasNext) {
+      val x = it.next()
+      if (first) {
+        acc = x
+        first = false
+      }
+      else acc = op(acc, x)
+    }
+    acc
+  }
+
+  def reduceRight[B >: A](op: (B, B) => B): B = {
+    val it = iterator
+    if (it.isEmpty)
+      throw new UnsupportedOperationException("empty.reduceRight")
+
+    reversed.reduceLeft[B]((x, y) => op(y, x))
+  }
+
+  def reduceLeftOption[B >: A](op: (B, B) => B): Option[B] = if (isEmpty) None else Some(reduceLeft(op))
 
   def isEmpty = !iterator.hasNext
 
