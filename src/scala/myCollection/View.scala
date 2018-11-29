@@ -280,6 +280,11 @@ object View extends IterableFactory[View] {
     override def isEmpty: Boolean = iterator.isEmpty
   }
 
+  class ZipWithIndex[A](underlying: SomeIterableOps[A]) extends AbstractView[(A, Int)] {
+    def iterator: Iterator[(A, Int)] = underlying.iterator.zipWithIndex
+    override def knownSize: Int = underlying.knownSize
+    override def isEmpty: Boolean = underlying.isEmpty
+  }
 }
 
 abstract class AbstractView[+A] extends AbstractIterable[A] with View[A]

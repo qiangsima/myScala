@@ -16,6 +16,12 @@ trait Iterator[+A] extends IterableOnce[A] with IterableOnceOps[A, Iterable, Ite
 
   @`inline` final def ++ [B >: A](suffix: IterableOnce[B]): Iterator[B] = concat(suffix)
 
+  def zip[B](that: IterableOnce[B]): Iterator[(A, B)] = new AbstractIterator[(A, B)] {
+    val thatIterator = that.iterator
+    def hasNext: Boolean = self.hasNext && thatIterator.hasNext
+    def next(): (A, B) = (self.next(), thatIterator.next())
+  }
+
   def padTo[B >: A](len: Int, elem: B): Iterator[B] = {
     val it = this
     new AbstractIterator[B] {
@@ -90,7 +96,11 @@ trait Iterator[+A] extends IterableOnce[A] with IterableOnceOps[A, Iterable, Ite
 
 object Iterator extends IterableFactory[Iterator] {
 
-
+  def single[A](a: A): Iterator[A] = new AbstractIterator[A] {
+    private[this] var consumed: Boolean = false
+    override def hasNext: Boolean = !consumed
+    override def next(): A = if (consumed) empty.next() else {consumed = true; a}
+  }
 }
 
  abstract class AbstractIterator[+A] extends Iterator[A]

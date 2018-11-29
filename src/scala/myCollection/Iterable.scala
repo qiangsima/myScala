@@ -101,6 +101,15 @@ trait IterableOps[+A, +CC[_], +C] extends Any with IterableOnce[A] with Iterable
 
   @`inline` final def ++[B >: A](suffix: IterableOnce[B]): CC[B] = concat(suffix)
 
+  def zip[B](that: IterableOnce[B]): CC[(A @uncheckedVariance, B)] = iterableFactory.from(that match {
+    case that: Iterable[B] => new View.Zip(this, that)
+    case _ => iterator.zip(that)
+  })
+
+  def zipWithIndex: CC[(A @uncheckedVariance, Int)] = iterableFactory.from(new View.ZipWithIndex(this))
+
+  def zipAll[A1 >: A, B](that: Iterable[B], thisElem: A1, thatElem: B): CC[(A1, B)] = iterableFactory.from(new View.ZipAll(this, that, thisElem, thatElem))
+
   def tail: C = {
     if (isEmpty) throw new UnsupportedOperationException
     drop(1)
@@ -132,6 +141,16 @@ object IterableOps {
 
 object Iterable extends IterableFactory.Delegate[Iterable](immutable.Iterable){
 
+  def single[A](a: A): Iterable[A] = new AbstractIterable[A] {
+    override def iterator: Iterator[A] = Iterator.single(a)
+    override def knownSize: Int = 1
+    override def head: A = a
+    override def headOption: Option[A] = Some(a)
+    override def last: A = a
+    override def lastOption: Option[A] = Some(a)
+    override def view = new View.Single(a)
+    override def drop(n: Int): Iterable[A] = if (n > 0) Iterable.empty else this
+  }
 }
 
 abstract class AbstractIterable[+A] extends Iterable[A]
