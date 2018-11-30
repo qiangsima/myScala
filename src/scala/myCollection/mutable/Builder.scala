@@ -16,6 +16,12 @@ trait Builder[-A, +To] extends Growable[A] { self =>
     if (s != -1)sizeHint(delta + s)
   }
 
+  final def sizeHintBounded(size: Int, boundingColl: myCollection.Iterable[_]): Unit = {
+    if (boundingColl.knownSize != -1) {
+      sizeHint(boundingColl.knownSize min size)
+    }
+  }
+
   def mapResult[NewTo](f: To => NewTo): Builder[A, NewTo] = new Builder[A, NewTo]{
     def addOne(x: A): this.type = {self += x; this}
     def clear(): Unit = self.clear()

@@ -1,13 +1,16 @@
 package scala.myCollection.mutable
 
-import scala.myCollection.IterableOnce
+import scala.collection.parallel.immutable
+import scala.myCollection.{IterableOnce, StrictOptimizedSeqOps}
 
 class ListBuffer[A]
   extends AbstractBuffer[A]
-    with SeqOps[A, ListBuffer, ListBuffer[A]] {
+    with SeqOps[A, ListBuffer, ListBuffer[A]]
+    with StrictOptimizedSeqOps[A, ListBuffer, ListBuffer[A]]
+    with ReusableBuilder[A, immutable.List[A]] {
 
   private var first: List[A] = Nil
-  private var last0 ::[A] = null
+  private var last0: ::[A] = null
 
 }
 

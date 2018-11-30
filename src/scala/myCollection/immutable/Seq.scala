@@ -12,8 +12,11 @@ trait Seq[+A] extends Iterable[A]
 
 trait SeqOps[+A, +CC[_], +C] extends Any with myCollection.SeqOps[A, CC, C]
 
-object Seq {
+object Seq extends SeqFactory.Delegate[Seq](List)
+
+trait IndexedSeq[+A] extends Seq[A]
+  with myCollection.IndexedSeq[A]
+  with IndexedSeqOps[A, IndexedSeq, IndexedSeq[A]] {
 
 }
-
 object IndexedSeq extends SeqFactory.Delegate[IndexedSeq](Vector)

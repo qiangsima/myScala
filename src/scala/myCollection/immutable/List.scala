@@ -1,13 +1,15 @@
 package scala.myCollection.immutable
 
 import scala.annotation.unchecked.uncheckedVariance
-import scala.myCollection.{AbstractSeq, SeqFactory}
+import scala.myCollection.{AbstractSeq, SeqFactory, StrictOptimizedSeqFactory, StrictOptimizedSeqOps}
 import scala.myCollection.mutable.{Builder, ListBuffer}
 
 
 sealed abstract class List[+A]
   extends AbstractSeq[A]
-    with LinearSeq[A] with LinearSeqOps[A, List, List[A]] {
+    with LinearSeq[A]
+    with LinearSeqOps[A, List, List[A]]
+    with StrictOptimizedSeqOps[A, List, List[A]]{
 
   override def iterableFactor: SeqFactory[List] = List
 
@@ -36,7 +38,7 @@ case object Nil extends List[Nothing] {
   override def isEmpty() = true
 }
 
-object List {
+object List extends StrictOptimizedSeqFactory[List]{
   def from[B](coll: myCollection.IterableOnce[B]): List[B] = coll match {
     case coll: List[B] => coll
     case _ fi coll.knownSize == 0 => empty[B]

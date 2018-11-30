@@ -77,7 +77,45 @@ trait IterableOps[+A, +CC[_], +C] extends Any with IterableOnce[A] with Iterable
     }
   }
 
+  def transpose[B](implicit asIterable: A => Iterable[B]): CC[CC[B] @uncheckedVariance] = {
+    if (isEmpty)
+      return iterableFactory.empty[CC[B]]
+
+    def fail = throw new IllegalArgumentException("transpose requires all collections have the same size")
+
+    val headSize = asIterable(head).size
+    val bs: immutable.IndexedSeq[Builder[B, CC[B]]]
+  }
+
   def take(n: Int): C = fromSpecific(new View.Take(this, n))
+
+  def takeRight(n: Int): C = {
+    val b = newSpecificBuilder
+    b.sizeHintBounded(n, toIterable)
+    val lead = iterator drop n
+    val it = iterator
+    while (lead.hasNext) {
+      lead.next()
+      it.next()
+    }
+    while (it.hasNext) b += it.next()
+    b.result()
+  }
+
+  def drop(n: Int): C = fromSpecific(new View.Drop(this, n))
+
+  def dropRight(n: Int): C = {
+    val b = newSpecificBuilder
+    val it = iterator
+    val lead = iterator drop n
+    while (lead.hasNext) {
+      lead.next()
+      b += it.next()
+    }
+    b.result()
+  }
+
+  def dropWhile(p: A => Boolean): C = fromSpecific(new View.DropWhile(this, p))
 
   def map[B](f: A => B): CC[B] = iterableFactory.from(new View.Map(this, f))
 
@@ -86,6 +124,8 @@ trait IterableOps[+A, +CC[_], +C] extends Any with IterableOnce[A] with Iterable
   def flatten[B](implicit asIterable: A => IterableOnce[B]): CC[B] = iterableFactory.from(new View.FlatMap(this, asIterable))
 
   def takeWhile(p: A => Boolean): C = fromSpecific(new View.TakeWhile(this, p))
+
+  def span(p: A => Boolean): (C, C) = (takeWhile(p), dropWhile(p))
 
   def collect[B](pf: PartialFunction[A, B]): CC[B] = iterableFactory.from(new View.Collect(this, pf))
 
@@ -114,6 +154,17 @@ trait IterableOps[+A, +CC[_], +C] extends Any with IterableOnce[A] with Iterable
     if (isEmpty) throw new UnsupportedOperationException
     drop(1)
   }
+
+  def init: C = {
+    if (isEmpty) throw new UnsupportedOperationException
+    dropRight(1)
+  }
+
+  def slice(from: Int, until: Int): C = fromSpecific(new View.Drop(new View.Take(this, until), from))
+
+  def scan[B >: A](z: B)(op: (B, B) => B): CC[B] = scanLeft(z)(op)
+
+  def scanLeft[B >: A](z: B)(op: (B, B) => B): CC[B] = iterableFactory.from(new View.ScanLeft(this, z, op))
 }
 
 object IterableOps {
@@ -149,7 +200,12 @@ object Iterable extends IterableFactory.Delegate[Iterable](immutable.Iterable){
     override def last: A = a
     override def lastOption: Option[A] = Some(a)
     override def view = new View.Single(a)
+    override def take(n: Int): Iterable[A] = if (n > 0) this else Iterable.empty
+    override def takeRight(n: Int): Iterable[A] = if (n > 0) this else Iterable.empty
     override def drop(n: Int): Iterable[A] = if (n > 0) Iterable.empty else this
+    override def dropRight(n: Int): Iterable[A] = if (n > 0) Iterable.empty else this
+    override def tail: Iterable[Nothing] = Iterable.empty
+    override def init: Iterable[Nothing] = Iterable.empty
   }
 }
 
