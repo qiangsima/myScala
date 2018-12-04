@@ -87,6 +87,19 @@ trait IterableOps[+A, +CC[_], +C] extends Any with IterableOnce[A] with Iterable
     val bs: immutable.IndexedSeq[Builder[B, CC[B]]]
   }
 
+  def filter(pred: A => Boolean): C = fromSpecific(new View.Filter(this, pred, isFlipped = false))
+
+  def filterNot(pred: A => Boolean): C = fromSpecific(new View.Filter(this, pred, isFlipped = true))
+
+  def withFilter(p: A => Boolean): myCollection.WithFilter[A, CC] = new IterableOps.WithFilter(this, p)
+
+  def partition(p: A => Boolean): (C, C) = {
+    val pn = new View.Partition(this, p)
+    (fromSpecific(pn.first), fromSpecific(pn.second))
+  }
+
+  def splitAt(n: Int): (C, C) = (take(n), drop(n))
+
   def take(n: Int): C = fromSpecific(new View.Take(this, n))
 
   def takeRight(n: Int): C = {
@@ -128,6 +141,8 @@ trait IterableOps[+A, +CC[_], +C] extends Any with IterableOnce[A] with Iterable
   def span(p: A => Boolean): (C, C) = (takeWhile(p), dropWhile(p))
 
   def collect[B](pf: PartialFunction[A, B]): CC[B] = iterableFactory.from(new View.Collect(this, pf))
+
+  def grouped(size: Int): Iterator[C] = iterator.grouped(size).map(fromSpecific)
 
   def partitionWith[A1, A2](f: A => Either[A1, A2]): (CC[A1], CC[A2]) = {
     val mp = new PartitionWith(this, f)
